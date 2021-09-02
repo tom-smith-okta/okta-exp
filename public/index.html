@@ -1,0 +1,190 @@
+
+<!DOCTYPE HTML>
+<html lang="en">
+
+<head>
+    <meta charset='utf-8' />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- ******* TITLE OF PAGE ******** -->
+
+    <title>Expedia console</title>
+
+    <!-- ******* CSS ******** -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
+
+    <style>
+        table td {
+            padding: 5px;
+        }
+    </style>
+
+    <!-- ******* JAVASCRIPT ******** -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.min.js" integrity="sha384-+YQ4JLhjyBLPDQt//I+STsc9iw4uQqACwlvpslubQzn4u2UU2UFM80nGisd026JF" crossorigin="anonymous"></script>
+
+    <script>
+        window.onload = function() {
+
+            authz_code_in_url(function(err, code) {
+                if (err) {
+                    console.log("there is not an authz code in the url.")
+                } else {
+                    console.log("authorization code: " + code)
+
+                    post_code(code, function(err, result) {
+                        console.log("posted the code.")
+                    })
+                }
+            })
+        }
+
+        function authz_code_in_url(callback) {
+            const params = new URLSearchParams(window.location.search)
+
+            if (params.has('code')) {
+                return callback(null, params.get('code'))
+            } else {
+                return callback("none")
+            }
+        }
+
+        function get_jwt() {
+            $.post(
+                "/access_token", {
+                    opaque_token: localStorage.getItem("opaque_token")
+                })
+            .done(function(data) {
+                if (data.access_token) {
+
+                    console.log("access_token:")
+                    console.log(data.access_token)
+                    localStorage.setItem("access_token", data.access_token)
+
+                    $("#get_access_token").hide()
+                    $("#got_access_token").show()
+
+                } else {
+                    console.dir(data)
+                }
+            })
+        }
+
+        function log_in() {
+            const username = $("#username").val()
+
+            const authz_url = "/expedia_authz?username=" + username
+
+            window.location = authz_url
+        }
+
+        function post_code(code, callback) {
+            $.post(
+                "/code", {
+                    code: code
+                })
+            .done(function(data) {
+                if (data.opaque_token) {
+
+                    $("#login_button").hide()
+
+                    $("#okta_session").show()
+
+                    const opaque_token = data.opaque_token
+
+                    const id_token = data.id_token
+
+                    console.log("opaque_token:")
+                    console.log(opaque_token)
+                    localStorage.setItem("opaque_token", opaque_token)
+
+                    console.log("id_token:")
+                    console.log(id_token)
+                    localStorage.setItem("id_token", id_token)
+
+                    $("#opaque_token").html(data.opaque_token)
+
+                    $("#id_token").html(data.id_token)
+
+                    window.history.replaceState({}, document.title, "/" + "");
+                } else {
+                    console.dir(data)
+                }
+            })
+        }
+
+        function sign_out() {
+            localStorage.clear()
+            window.location = "/sign_out"
+        }
+
+    </script>
+
+</head>
+
+<body>
+
+    <main role="main" class="container">
+
+        <div class="starter-template">
+
+            <a href = '/'><img src="https://tom-smith-okta-images.s3.amazonaws.com/expedia/expedia_logo.png"></a>
+
+            <h2>Console</h2>
+
+            <div class="row">
+                <div class="col-6">
+
+                    <div id="login_button">
+                        username:
+                        <br>
+                        <input type="text" size=40 id="username">
+                        <br><br><button onclick="log_in()">log in</button>
+                    </div>
+
+                    <div id="okta_session" style="display: none;">
+                        <p style="color: green;">Success!</p>
+                        <p>See the console & local storage for your tokens.</p>
+                        <hr>
+                        <div id="get_access_token">
+                            <button onclick='get_jwt()'>get access token (jwt)</button>
+                            <br><br>
+                        </div>
+                        <div id="got_access_token" style="display: none;">
+                            <p style="color: green;">Success!</p>
+                            <p>See the console & local storage for your access token.</p>
+                        </div>
+                        <button onclick='sign_out()'>log out of Okta</button>
+                    </div>
+                </div>
+
+                <div class="col-4">
+                    <table style="border: 1px solid black; padding: 10px;">
+                        <tr style="font-weight: bold;">
+                            <td>Username</td>
+                            <td>Experience</td>
+                        </tr>
+                        <tr>
+                            <td>jon.krakauer@gmail.com</td>
+                            <td>consumer</td>
+                        </tr>
+                        <tr>
+                            <td>partner.admin@chase.com</td>
+                            <td>partner</td>
+                        </tr>
+                        <tr>
+                            <td>expedia.employee@expediagroup.com</td>
+                            <td>employee</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+    </main><!-- /.container -->
+
+</body>
+
+</html>
